@@ -1,0 +1,16 @@
+import socket, optparse
+
+parser = optparse.OptionParser()
+parser.add_option('-i', dest='ip', default='')
+parser.add_option('-p', dest='port', type='int', default=12345)
+parser.add_option('-f', dest='file', default='foo.out')
+(options, args) = parser.parse_args()
+
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.bind( (options.ip, options.port) )
+
+f = open(options.file,'w')
+while True:
+  data, addr = s.recvfrom(512)
+  f.write("%s: %s\n" % (addr, data))
+  f.flush()
