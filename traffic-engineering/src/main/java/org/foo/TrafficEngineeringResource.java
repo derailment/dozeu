@@ -1,18 +1,3 @@
-/*
- * Copyright 2018-present Open Networking Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.foo;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -72,12 +57,15 @@ public class TrafficEngineeringResource extends AbstractWebResource {
 
         ArrayNode linksNode = mapper.createArrayNode();
         for (Link link: linkService.getActiveLinks()){
+
+            long srcBw = portStatisticsService.load(link.src()).rate() * 8 / 1000;
+            long dstBw = portStatisticsService.load(link.dst()).rate() * 8 / 1000;
+
             // unit: Kbps
             ObjectNode linkNode = mapper.createObjectNode()
                     .put("src", link.src().deviceId().toString())
                     .put("dst", link.dst().deviceId().toString())
-                    .put("src_bw", portStatisticsService.load(link.src()).rate() * 8 / 1000)
-                    .put("dst_bw", portStatisticsService.load(link.dst()).rate() * 8 / 1000);
+                    .put("bw", (srcBw + dstBw) / 2 );
 
             linksNode.add(linkNode);
         }
@@ -89,7 +77,7 @@ public class TrafficEngineeringResource extends AbstractWebResource {
             // unit: Kbps
             ObjectNode hostNode = mapper.createObjectNode()
                     .put("host", host.id().toString())
-                    .put("dev", host.location().deviceId().toString())
+                    .put("location", host.location().deviceId().toString())
                     .put("bw", portStatisticsService.load(host.location()).rate() * 8 / 1000);
 
             edgesNode.add(hostNode);
