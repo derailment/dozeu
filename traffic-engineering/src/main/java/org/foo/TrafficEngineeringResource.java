@@ -121,8 +121,8 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 long oneBw = portStatisticsService.load(hostService.getHost(oneId).location()).rate() * 8 / 1000;
                 long twoBw = portStatisticsService.load(hostService.getHost(twoId).location()).rate() * 8 / 1000;
 
-                node.put("one", oneId.mac().toString())
-                        .put("two", twoId.mac().toString())
+                node.put("one", oneId.toString())
+                        .put("two", twoId.toString())
                         .put("bw", Math.max(oneBw, twoBw));
                 connsNode.addPOJO(node);
 

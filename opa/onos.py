@@ -19,13 +19,12 @@ class TopoManager(object):
         for link in reply['links']:
             n1 = link['src']
             n2 = link['dst']
-            # unit: Kbps
-            bw = link['bw']
+            bw = link['bw'] # unit: Kbps
             if (bw > BANDWIDTH_THRESHOLD * LINK_BANDWIDTH_LIMIT):
                 self.is_at_peak = True
             self.__devices.append(n1)     
-            self.graph.add_node(n1, type='device')
             self.__devices.append(n2)
+            self.graph.add_node(n1, type='device')
             self.graph.add_node(n2, type='device')
             self.graph.add_edge(n1, n2, **{'bandwidth': LINK_BANDWIDTH_LIMIT})
         for edge in reply['edges']:
@@ -50,13 +49,35 @@ class IntentManager(object):
 
     def __init__(self):
         self.__conns = self.__get_conns()
+        self.__paths = []
 
     def __get_conns(self):
         reply = json_get_req('http://%s:%d/bandwidth/connections' % (ONOS_IP, ONOS_PORT))
         return sorted(reply['connections'], key = lambda k: k['bw'], reverse = True)
         
     def reroute(self, topo):
-        return        
+        path, reduced_topo = self.__find_path(self.__conns[0], topo)
+        
+    def __find_path(self, conn, topo):
+        n1 = conn['one']
+        n2 = conn['two']
+        bw = conn['bw']
+        try:
+            reduced_topo = topo.copy()
+            is_bad_path = False
+            path = nx.shortest_path(reduced_topo, n1, n2)
+            for link in zip(path, path[1:]):
+                src = link[0]
+                dst = link[1]
+                reduced_topo[src][dst]['bandwidth'] -= bw
+                if reduced_topo[src][dst]['bandwidth'] <= 0:
+                    reduced_topo.remove_edge(src, dst)
+                    is_bad_path = True              
+            if is_bad_path == True:
+                return (None, reduced_topo)
+            else:
+                return (path, reduced_topo)
+        except nx.NetworkXNoPath:
+            logging.warning("no path found between " + n1 + ' and ' + n2)
+            return (None, None)
 
-
-            

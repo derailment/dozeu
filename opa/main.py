@@ -4,6 +4,7 @@ import logging
 import time
 
 if __name__ == '__main__':
+    """
     while True:
         topoManager = TopoManager()
         topoManager.get_topo()
@@ -13,3 +14,8 @@ if __name__ == '__main__':
             intentManager.reroute(topoManager.graph)
         else:
             time.sleep(POLLING_INTERVAL)
+    """
+    topoManager = TopoManager()
+    topoManager.get_topo()
+    intentManager = IntentManager()
+    intentManager.reroute(topoManager.graph)
