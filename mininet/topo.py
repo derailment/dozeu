@@ -8,7 +8,7 @@ from mininet.link import TCLink
 
 
 class CustomTopo(Topo):
-    def __init__(self, bw=1e3, **opts):
+    def __init__(self, bw=10, **opts): # unit: Kbps
         super(CustomTopo, self).__init__(**opts)
 
         s = [self.addSwitch('s%d' % n) for n in range(1, 4)]
@@ -33,5 +33,6 @@ if __name__ == '__main__':
                   autoStaticArp=True,
                   link=TCLink)
     net.start()
+    net.ping()
     CLI(net)
     net.stop()
