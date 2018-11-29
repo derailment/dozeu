@@ -20,6 +20,8 @@ class TopoManager(object):
             n1 = link['src']
             n2 = link['dst']
             bw = link['bw'] # unit: Kbps
+            #test
+            print 'bw:', bw
             if (bw > BANDWIDTH_THRESHOLD * LINK_BANDWIDTH_LIMIT):
                 self.is_at_peak = True
             self.__devices.append(n1)     
@@ -48,7 +50,7 @@ class TopoManager(object):
 class IntentManager(object):
 
     def __init__(self):
-        self.__conns = self.__get_conns()
+        self.__conns = []
         self.__paths = []
 
     def __get_conns(self):
@@ -56,12 +58,31 @@ class IntentManager(object):
         return sorted(reply['connections'], key = lambda k: k['bw'], reverse = True)
         
     def reroute(self, topo):
-        path, reduced_topo = self.__find_path(self.__conns[0], topo)
+        self.__conns = self.__get_conns()
+        for conn in self.__conns:
+            _topo = topo
+            n1 = conn['src']
+            n2 = conn['dst']
+            bw = conn['bw']
+            #test 
+            print '<', n1, n2, 'bw:', bw, '>'
+            while True:
+                path, reduced_topo = self.__find_path(n1, n2, bw, _topo)
+                if reduced_topo == None:
+                    # found no path in this connection; do nothing
+                    break
+                elif path == None:
+                    # found path that has insufficient capacity; find another path on reduced topology
+                    _topo = reduced_topo
+                    continue
+                else:
+                    self.__paths.append(path)
+                    topo = self.__reduce_capacity_on_path(path, topo, bw)
+                    break
+        #test
+        print self.__paths[0:]
         
-    def __find_path(self, conn, topo):
-        n1 = conn['one']
-        n2 = conn['two']
-        bw = conn['bw']
+    def __find_path(self, n1, n2, bw, topo):
         try:
             reduced_topo = topo.copy()
             is_bad_path = False
@@ -81,3 +102,10 @@ class IntentManager(object):
             logging.warning("no path found between " + n1 + ' and ' + n2)
             return (None, None)
 
+    def __reduce_capacity_on_path(self, path, reduced_topo, bw):
+        for link in zip(path, path[1:]):
+            src = link[0]
+            dst = link[1]
+            reduced_topo[src][dst]['bandwidth'] -= bw
+        return reduced_topo
+        
