@@ -33,6 +33,6 @@ if __name__ == '__main__':
                   autoStaticArp=True,
                   link=TCLink)
     net.start()
-    net.ping()
+#    net.ping()
     CLI(net)
     net.stop()

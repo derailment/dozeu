@@ -121,6 +121,11 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 long oneBw = portStatisticsService.load(hostService.getHost(oneId).location()).rate() * 8 / 1000;
                 long twoBw = portStatisticsService.load(hostService.getHost(twoId).location()).rate() * 8 / 1000;
 
+                // no connection
+                if (oneBw < 2 || twoBw < 2) {
+                   continue;
+                }
+
                 node.put("one", oneId.toString())
                         .put("two", twoId.toString())
                         .put("bw", Math.max(oneBw, twoBw));
@@ -220,7 +225,7 @@ public class TrafficEngineeringResource extends AbstractWebResource {
             intentService.purge(pathIntent);
         }
 
-        // set priority of this path intent higher than host to host intent which builds shortest path
+        // priority of this path intent equals host to host intent which builds shortest path
         ApplicationId h2hAppId = coreService.registerApplication("org.onosproject.ifwd");
         Key h2hIntentKey;
         if(srcId.toString().compareTo(dstId.toString()) < 0) {
@@ -230,7 +235,7 @@ public class TrafficEngineeringResource extends AbstractWebResource {
         }
         HostToHostIntent h2hIntent = (HostToHostIntent) intentService.getIntent(h2hIntentKey);
         if(h2hIntent != null && intentService.getIntentState(h2hIntentKey) == IntentState.INSTALLED) {
-            priority = h2hIntent.priority() + 1;
+            priority = h2hIntent.priority();
         }
 
         pathIntent = PathIntent.builder()

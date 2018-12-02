@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 from config import *
 import networkx as nx
-from utils import json_get_req
+from utils import json_get_req, json_post_req
+import json
 import logging
 
 class TopoManager(object):
@@ -21,7 +22,7 @@ class TopoManager(object):
             n2 = link['dst']
             bw = link['bw'] # unit: Kbps
             #test
-            print 'bw:', bw
+            print 'cp of link bw:', bw
             if (bw > BANDWIDTH_THRESHOLD * LINK_BANDWIDTH_LIMIT):
                 self.is_at_peak = True
             self.__devices.append(n1)     
@@ -51,7 +52,7 @@ class IntentManager(object):
 
     def __init__(self):
         self.__conns = []
-        self.__paths = []
+        self.__reroute_msg = {'paths': []}
 
     def __get_conns(self):
         reply = json_get_req('http://%s:%d/bandwidth/connections' % (ONOS_IP, ONOS_PORT))
@@ -61,8 +62,8 @@ class IntentManager(object):
         self.__conns = self.__get_conns()
         for conn in self.__conns:
             _topo = topo
-            n1 = conn['src']
-            n2 = conn['dst']
+            n1 = conn['one']
+            n2 = conn['two']
             bw = conn['bw']
             #test 
             print '<', n1, n2, 'bw:', bw, '>'
@@ -76,11 +77,13 @@ class IntentManager(object):
                     _topo = reduced_topo
                     continue
                 else:
-                    self.__paths.append(path)
+                    self.__reroute_msg['paths'].append({'path': path})
                     topo = self.__reduce_capacity_on_path(path, topo, bw)
                     break
         #test
-        print self.__paths[0:]
+        print self.__reroute_msg['paths'][0:]
+        
+        self.__send_paths(self.__reroute_msg)
         
     def __find_path(self, n1, n2, bw, topo):
         try:
@@ -99,7 +102,7 @@ class IntentManager(object):
             else:
                 return (path, reduced_topo)
         except nx.NetworkXNoPath:
-            logging.warning("no path found between " + n1 + ' and ' + n2)
+            logging.info("No path found: %s, %s", n1, n2)
             return (None, None)
 
     def __reduce_capacity_on_path(self, path, reduced_topo, bw):
@@ -108,4 +111,17 @@ class IntentManager(object):
             dst = link[1]
             reduced_topo[src][dst]['bandwidth'] -= bw
         return reduced_topo
-        
+   
+    def __send_paths(self, reroute_msg):
+        # add paths in reverse direction
+        reversed_paths = []
+        routes = reroute_msg['paths']
+        for route in routes:
+            reversed_path = {'path': route['path'][::-1]}
+            if reversed_path not in routes:  
+                reversed_paths.append(reversed_path)
+        routes.extend(reversed_paths)   
+        # send paths for rerouting   
+        reply = json_post_req('http://%s:%d/reroute' % (ONOS_IP, ONOS_PORT), json.dumps(reroute_msg))
+        if reply != '':
+            logging.info('Reroute: %s', reply)
