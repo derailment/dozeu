@@ -15,7 +15,7 @@ def authenticated_http_req(url, user, pwd):
 def json_get_req(url):
     try:
         request = authenticated_http_req(url, ONOS_USER, ONOS_PASS)
-	response = urllib2.urlopen(request)
+        response = urllib2.urlopen(request)
         return json.loads(response.read())
     except IOError as e:
         logging.error(e)
@@ -26,8 +26,8 @@ def json_post_req(url, json_data):
         request = authenticated_http_req(url, ONOS_USER, ONOS_PASS)
         request.add_header('Content-Type', 'application/json')
         request.add_header('Accept', 'application/json')
-	response = urllib2.urlopen(request, data=json_data)
-	return json.loads(response.read())
+        response = urllib2.urlopen(request, data=json_data)
+        return json.loads(response.read())
     except IOError as e:
-	logging.error(e)
+        logging.error(e)
         return ''

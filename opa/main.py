@@ -1,5 +1,5 @@
 from config import *
-from onos import TopoManager, IntentManager
+from onos_opa import TopoManager, IntentManager
 import logging
 import time
 import optparse
