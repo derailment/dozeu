@@ -4,12 +4,13 @@ import networkx as nx
 from utils import json_get_req, json_post_req
 import json
 import logging
+import time
 
 class TopoManager(object):
     
     def __init__(self):
         self.graph = nx.Graph()
-        self.is_at_peak = False
+        self.is_congestion = False
         # arguments for drawing topology
         self.__pos = None
         self.__hosts = []
@@ -21,10 +22,8 @@ class TopoManager(object):
             n1 = link['src']
             n2 = link['dst']
             bw = link['bw'] # unit: Kbps
-            #test
-            print 'cp of link bw:', bw
             if (bw > BANDWIDTH_THRESHOLD * LINK_BANDWIDTH_LIMIT):
-                self.is_at_peak = True
+                self.is_congestion = True
             self.__devices.append(n1)     
             self.__devices.append(n2)
             self.graph.add_node(n1, type='device')
@@ -55,18 +54,34 @@ class IntentManager(object):
         self.__reroute_msg = {'paths': []}
 
     def __get_conns(self):
-        reply = json_get_req('http://%s:%d/bandwidth/connectivity' % (ONOS_IP, ONOS_PORT))
-        return sorted(reply['connectivities'], key = lambda k: k['bw'], reverse = True)
+        conns = []
+        prev_conns = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
+        time.sleep(POLLING_INTERVAL)
+        next_conns = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
+        for prev_stat in prev_conns['connectivities']:
+            n1 = prev_stat['one']
+            n2 = prev_stat['two']
+            for next_stat in next_conns['connectivities']:
+                if n1 == next_stat['one'] and n2 == next_stat['two']:
+                    delta_time = next_stat['life'] - prev_stat['life']
+                    delta_byte = next_stat['byte'] - prev_stat['byte']
+                    if delta_time > 0 and delta_byte > 0:
+                        # unit: Kbps
+                        bw = (delta_byte / delta_time) * 8 / 1000
+                        conns.append({'one': n1, 'two': n2, 'bw': bw})
+                    else:
+                        break
+        return sorted(conns, key = lambda k: k['bw'], reverse = True)
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
+        logging.info("Start finding path between two hosts...")
         for conn in self.__conns:
             _topo = topo
             n1 = conn['one']
             n2 = conn['two']
             bw = conn['bw']
-            #test 
-            print '<', n1, n2, 'bw:', bw, '>'
+            logging.info("[%s, %s] %s (Kbps)", n1, n2, bw)
             while True:
                 path, reduced_topo = self.__find_path(n1, n2, bw, _topo)
                 if reduced_topo == None:
@@ -80,9 +95,6 @@ class IntentManager(object):
                     self.__reroute_msg['paths'].append({'path': path})
                     topo = self.__reduce_capacity_on_path(path, topo, bw)
                     break
-        #test
-        print self.__reroute_msg['paths'][0:]
-        
         self.__send_paths(self.__reroute_msg)
         
     def __find_path(self, n1, n2, bw, topo):
@@ -102,7 +114,7 @@ class IntentManager(object):
             else:
                 return (path, reduced_topo)
         except nx.NetworkXNoPath:
-            logging.info("No path found: %s, %s", n1, n2)
+            logging.info("[Warning] no path found: %s, %s", n1, n2)
             return (None, None)
 
     def __reduce_capacity_on_path(self, path, reduced_topo, bw):
@@ -122,6 +134,8 @@ class IntentManager(object):
                 reversed_paths.append(reversed_path)
         routes.extend(reversed_paths)   
         # send paths for rerouting   
+        logging.info("Start rerouting...")
+        logging.info(reroute_msg)
         reply = json_post_req('http://%s:%d/reroute' % (ONOS_IP, ONOS_PORT), json.dumps(reroute_msg))
         if reply != '':
-            logging.info('Reroute: %s', reply)
+            logging.info(reply)

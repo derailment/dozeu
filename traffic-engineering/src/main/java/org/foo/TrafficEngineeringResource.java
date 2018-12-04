@@ -125,11 +125,13 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 List<FlowEntry> flowEntries = flowEntriesList.get(0);
                 long _life = 0;
                 long _byte = 0;
+                long _flowId = 0;
                 // select flow entry with max life for this intent
                 for(FlowEntry flowEntry: flowEntries) {
                     if (flowEntry.life() > _life) {
                         _life = flowEntry.life();
                         _byte = flowEntry.bytes();
+                        _flowId = flowEntry.id().value();
                     }
                 }
                 HostToHostIntent h2hIntent = (HostToHostIntent) intent;
@@ -139,7 +141,8 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 node.put("one", oneId.toString())
                         .put("two", twoId.toString())
                         .put("byte", _byte)
-                        .put("life", _life);
+                        .put("life", _life)
+                        .put("flowid", _flowId);
                 connsNode.addPOJO(node);
             }
         }

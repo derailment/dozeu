@@ -9,11 +9,11 @@ data = {'paths': [
   ]
 }
 
-reply = json_post_req('http://%s:%d/reroute' % (ONOS_IP, ONOS_PORT), json.dumps(data))
-print reply
+#reply = json_post_req('http://%s:%d/reroute' % (ONOS_IP, ONOS_PORT), json.dumps(data))
+#print reply
 
-reply = json_get_req('http://%s:%d/bandwidth/topology' % (ONOS_IP, ONOS_PORT))
-print reply
+#reply = json_get_req('http://%s:%d/bandwidth/topology' % (ONOS_IP, ONOS_PORT))
+#print reply
 
 reply = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
 print reply
