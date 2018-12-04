@@ -55,8 +55,8 @@ class IntentManager(object):
         self.__reroute_msg = {'paths': []}
 
     def __get_conns(self):
-        reply = json_get_req('http://%s:%d/bandwidth/connections' % (ONOS_IP, ONOS_PORT))
-        return sorted(reply['connections'], key = lambda k: k['bw'], reverse = True)
+        reply = json_get_req('http://%s:%d/bandwidth/connectivity' % (ONOS_IP, ONOS_PORT))
+        return sorted(reply['connectivities'], key = lambda k: k['bw'], reverse = True)
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
@@ -70,7 +70,7 @@ class IntentManager(object):
             while True:
                 path, reduced_topo = self.__find_path(n1, n2, bw, _topo)
                 if reduced_topo == None:
-                    # found no path in this connection; do nothing
+                    # found no path in this connectivity; do nothing
                     break
                 elif path == None:
                     # found path that has insufficient capacity; find another path on reduced topology
