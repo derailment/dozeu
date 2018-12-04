@@ -55,23 +55,37 @@ class IntentManager(object):
 
     def __get_conns(self):
         conns = []
-        prev_conns = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
+        prev_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
         time.sleep(POLLING_INTERVAL)
-        next_conns = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
-        for prev_stat in prev_conns['connectivities']:
+        next_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
+        for prev_stat in prev_stats['connectivities']:
             n1 = prev_stat['one']
             n2 = prev_stat['two']
-            for next_stat in next_conns['connectivities']:
+            for next_stat in next_stats['connectivities']:
                 if n1 == next_stat['one'] and n2 == next_stat['two']:
                     delta_time = next_stat['life'] - prev_stat['life']
                     delta_byte = next_stat['byte'] - prev_stat['byte']
                     if delta_time > 0 and delta_byte > 0:
                         # unit: Kbps
                         bw = (delta_byte / delta_time) * 8 / 1000
-                        conns.append({'one': n1, 'two': n2, 'bw': bw})
+                        self.__add_conn_pair(conns, n1, n2, bw)
                     else:
                         break
         return sorted(conns, key = lambda k: k['bw'], reverse = True)
+
+    def __add_conn_pair(self, conns, n1, n2, bw):
+        for conn in conns:
+            # it is from the same pair of two hosts
+            if (conn['one'] == n1 and conn['two'] == n2) or (conn['one'] == n2 and conn['two'] == n1):
+                print 'hello', n1, n2, bw
+                # keep higher for evaluating expense of bandwidth
+                if conn['bw'] >= bw:
+                    return conns
+                else:
+                    conn['bw'] = bw
+                    return conns
+        # it is from different pair of two hosts
+        return conns.append({'one': n1, 'two': n2, 'bw': bw})
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
@@ -130,12 +144,13 @@ class IntentManager(object):
         routes = reroute_msg['paths']
         for route in routes:
             reversed_path = {'path': route['path'][::-1]}
-            if reversed_path not in routes:  
+            if reversed_path not in routes and reversed_path not in reversed_paths:  
                 reversed_paths.append(reversed_path)
         routes.extend(reversed_paths)   
         # send paths for rerouting   
         logging.info("Start rerouting...")
-        logging.info(reroute_msg)
+        for msg in reroute_msg['paths']:
+            logging.info(msg['path'])
         reply = json_post_req('http://%s:%d/reroute' % (ONOS_IP, ONOS_PORT), json.dumps(reroute_msg))
         if reply != '':
             logging.info(reply)

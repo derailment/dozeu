@@ -10,7 +10,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.onlab.graph.ScalarWeight;
 import org.onosproject.core.ApplicationId;
 import org.onosproject.core.CoreService;
@@ -30,9 +29,8 @@ import org.slf4j.Logger;
 
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-
-import static java.lang.Thread.sleep;
 
 /**
  * REST API for bandwidth monitoring and path rerouting among network.
@@ -114,10 +112,12 @@ public class TrafficEngineeringResource extends AbstractWebResource {
         ArrayNode connsNode = mapper.createArrayNode();
 
         ApplicationId h2hAppId = coreService.getAppId("org.onosproject.ifwd");
+        ApplicationId pathAppId = coreService.getAppId("org.foo.path");
 
         for (Intent intent : intentService.getIntents()) {
-            // require host-to-host intent
-            if(intent.appId().equals(h2hAppId)) {
+            // require host-to-host intent or path intent
+            ApplicationId appId = intent.appId();
+            if(appId.equals(h2hAppId) || appId.equals(pathAppId)) {
                 List<Intent> installable = intentService.getInstallableIntents(intent.key());
                 // intent-related flow entries
                 List<List<FlowEntry>> flowEntriesList = intentFilter.readIntentFlows(installable);
@@ -134,9 +134,26 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                         _flowId = flowEntry.id().value();
                     }
                 }
-                HostToHostIntent h2hIntent = (HostToHostIntent) intent;
-                HostId oneId = h2hIntent.one();
-                HostId twoId = h2hIntent.two();
+                Iterator<NetworkResource> resourcesIterator = intent.resources().iterator();
+                HostId oneId = null;
+                HostId twoId = null;
+                if (intent instanceof HostToHostIntent) {
+                    oneId = (HostId) resourcesIterator.next();
+                    twoId = (HostId) resourcesIterator.next();
+                }
+                if (intent instanceof PathIntent) {
+                    while(resourcesIterator.hasNext()){
+                        NetworkResource networkResource = resourcesIterator.next();
+                        if (networkResource instanceof DefaultEdgeLink) {
+                            if (oneId == null) {
+                                oneId = ((DefaultEdgeLink) networkResource).hostId();
+                            }
+                            else if (twoId == null){
+                                twoId = ((DefaultEdgeLink) networkResource).hostId();
+                            }
+                        }
+                    }
+                }
                 ObjectNode node = mapper.createObjectNode();
                 node.put("one", oneId.toString())
                         .put("two", twoId.toString())
@@ -171,20 +188,23 @@ public class TrafficEngineeringResource extends AbstractWebResource {
 
         try {
 
+            ObjectNode rootNode = mapper.createObjectNode();
+
             ProviderId providerId = new ProviderId("provider.scheme", "provider.id");
             Routes routes = mapper.readValue(stream, Routes.class);
 
-            for (Route route : routes.getPaths()) {
-
+            List<Route> routeList = routes.getPaths();
+            if (routeList == null || routeList.size() == 0) {
+                rootNode.put("response", "no paths");
+                return ok(rootNode).build();
+            }
+            for (Route route : routeList) {
                 HostId srcId = route.getSrcId();
                 HostId dstId = route.getDstId();
                 List<DeviceId> deviceIds = route.getDeviceIds();
-
                 submitPathIntent(providerId, deviceIds, srcId, dstId);
-
             }
 
-            ObjectNode rootNode = mapper.createObjectNode();
             rootNode.put("response", "OK");
             return ok(rootNode).build();
 
