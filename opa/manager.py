@@ -63,10 +63,11 @@ class IntentManager(object):
         time.sleep(STATISTICS_INTERVAL)
         next_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
         for prev_stat in prev_stats['connectivities']:
+            flowid = prev_stat['flowid']
             n1 = prev_stat['one']
             n2 = prev_stat['two']
             for next_stat in next_stats['connectivities']:
-                if n1 == next_stat['one'] and n2 == next_stat['two']:
+                if next_stat['flowid'] == flowid:
                     delta_time = next_stat['life'] - prev_stat['life']
                     delta_byte = next_stat['byte'] - prev_stat['byte']
                     if delta_time > 0 and delta_byte > 0:
