@@ -16,8 +16,11 @@ class TopoManager(object):
         self.__hosts = []
         self.__devices = []
     
-    def get_topo(self):
+    def is_topo_available(self):
         reply = json_get_req('http://%s:%d/bandwidth/topology' % (ONOS_IP, ONOS_PORT))
+        if isinstance(reply, basestring) or reply['links'] == [] or reply['edges'] == []:
+            logging.info("[Warning] topology error: %s", reply)
+            return False
         for link in reply['links']:
             n1 = link['src']
             n2 = link['dst']
@@ -36,6 +39,7 @@ class TopoManager(object):
                 self.__hosts.append(n1)
                 self.graph.add_node(n1, type='host')
                 self.graph.add_edge(n1, n2, **{'bandwidth': EDGE_BANDWIDTH_LIMIT})
+        return True
 
     def draw_topo(self, block=True):
         self.__pos = nx.fruchterman_reingold_layout(self.graph)      
@@ -56,7 +60,7 @@ class IntentManager(object):
     def __get_conns(self):
         conns = []
         prev_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
-        time.sleep(POLLING_INTERVAL)
+        time.sleep(STATISTICS_INTERVAL)
         next_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
         for prev_stat in prev_stats['connectivities']:
             n1 = prev_stat['one']
@@ -77,7 +81,6 @@ class IntentManager(object):
         for conn in conns:
             # it is from the same pair of two hosts
             if (conn['one'] == n1 and conn['two'] == n2) or (conn['one'] == n2 and conn['two'] == n1):
-                print 'hello', n1, n2, bw
                 # keep higher for evaluating expense of bandwidth
                 if conn['bw'] >= bw:
                     return conns
@@ -139,9 +142,12 @@ class IntentManager(object):
         return reduced_topo
    
     def __send_paths(self, reroute_msg):
+        routes = reroute_msg['paths']
+        if routes == []:
+            logging.info("[Warning] no paths to send")
+            return
         # add paths in reverse direction
         reversed_paths = []
-        routes = reroute_msg['paths']
         for route in routes:
             reversed_path = {'path': route['path'][::-1]}
             if reversed_path not in routes and reversed_path not in reversed_paths:  

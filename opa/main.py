@@ -1,5 +1,5 @@
 from config import *
-from onos_opa import TopoManager, IntentManager
+from manager import TopoManager, IntentManager
 import logging
 import time
 import optparse
@@ -11,7 +11,9 @@ if __name__ == '__main__':
     if not options.oneshot:
         while True:
             topoManager = TopoManager()
-            topoManager.get_topo()
+            if not topoManager.is_topo_available():
+                time.sleep(1)
+                continue
             #topoManager.draw_topo()
             if topoManager.is_congestion:
                 logging.info("Detect traffic congestion...")
@@ -22,6 +24,6 @@ if __name__ == '__main__':
                 time.sleep(POLLING_INTERVAL)
     else:
         topoManager = TopoManager()
-        topoManager.get_topo()
-        intentManager = IntentManager()
-        intentManager.reroute(topoManager.graph)
+        if topoManager.is_topo_available():
+            intentManager = IntentManager()
+            intentManager.reroute(topoManager.graph)
