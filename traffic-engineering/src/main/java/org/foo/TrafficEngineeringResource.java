@@ -159,7 +159,8 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                         .put("two", twoId.toString())
                         .put("byte", _byte)
                         .put("life", _life)
-                        .put("flowid", _flowId);
+                        .put("flowid", _flowId)
+                        .put("appid", intent.appId().name());
                 connsNode.addPOJO(node);
             }
         }

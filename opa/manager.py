@@ -56,6 +56,7 @@ class IntentManager(object):
     def __init__(self):
         self.__conns = []
         self.__reroute_msg = {'paths': []}
+        self.__should_reroute = False
 
     def __get_conns(self):
         conns = []
@@ -64,6 +65,7 @@ class IntentManager(object):
         next_stats = json_get_req('http://%s:%d/state/connectivity' % (ONOS_IP, ONOS_PORT))
         for prev_stat in prev_stats['connectivities']:
             flowid = prev_stat['flowid']
+            appid = prev_stat['appid']
             n1 = prev_stat['one']
             n2 = prev_stat['two']
             for next_stat in next_stats['connectivities']:
@@ -73,12 +75,12 @@ class IntentManager(object):
                     if delta_time > 0 and delta_byte > 0:
                         # unit: Kbps
                         bw = (delta_byte / delta_time) * 8 / 1000
-                        self.__add_conn_pair(conns, n1, n2, bw)
+                        self.__add_conn_pair(conns, n1, n2, bw, appid)
                     else:
                         break
         return sorted(conns, key = lambda k: k['bw'], reverse = True)
 
-    def __add_conn_pair(self, conns, n1, n2, bw):
+    def __add_conn_pair(self, conns, n1, n2, bw, appid):
         i = 0
         for conn in conns:
             # it is from the same pair of two hosts
@@ -92,10 +94,16 @@ class IntentManager(object):
             i = i + 1
         # it is from different pair of two hosts
         conns.append({'one': n1, 'two': n2, 'bw': bw})
+        # handle when connectivity is from host to host intent
+        if appid == 'org.onosproject.ifwd':
+            self.__should_reroute = True 
         return
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
+        if self.__should_reroute == False:
+            logging.info("Sorry, this is the best solution :(")
+            return
         logging.info("Start finding path between two hosts...")
         for conn in self.__conns:
             _topo = topo
