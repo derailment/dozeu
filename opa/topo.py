@@ -41,8 +41,9 @@ if __name__ == '__main__':
 
     p3 = h3.popen('iperf -s')
     p4 = h4.popen('iperf -s')
+    time.sleep(2)
     p1 = h1.popen('iperf -c 10.1.1.3 -t 600 -b 8M')
-    time.sleep(1)
+    time.sleep(2)
     p2 = h2.popen('iperf -c 10.1.1.4 -t 600 -b 8M')
 
     CLI(net)    

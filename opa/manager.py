@@ -79,17 +79,20 @@ class IntentManager(object):
         return sorted(conns, key = lambda k: k['bw'], reverse = True)
 
     def __add_conn_pair(self, conns, n1, n2, bw):
+        i = 0
         for conn in conns:
             # it is from the same pair of two hosts
             if (conn['one'] == n1 and conn['two'] == n2) or (conn['one'] == n2 and conn['two'] == n1):
                 # keep higher for evaluating expense of bandwidth
                 if conn['bw'] >= bw:
-                    return conns
+                    return
                 else:
-                    conn['bw'] = bw
-                    return conns
+                    conns[i]['bw'] = bw
+                    return
+            i = i + 1
         # it is from different pair of two hosts
-        return conns.append({'one': n1, 'two': n2, 'bw': bw})
+        conns.append({'one': n1, 'two': n2, 'bw': bw})
+        return
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
