@@ -38,12 +38,14 @@ sudo python ./opa/topo.py
 Then, log in ONOS GUI in browser, there are two connectivities:
 1. h1 sends dataframes to h3 at speed 5Mbps
 2. h2 sends dataframes to h4 at speed 5Mbps
-<img src="https://github.com/derailment/image/before_reroute.png" width="500">
-All of links of the topology have maximum bandwidth limit 10Mbps 
+All of links of the topology have maximum bandwidth limit 10Mbps
+
+<img src="https://github.com/derailment/dozeu/blob/master/image/before_reroute.png" width="500">
 
 We can evaluate the best routes of the current connectivities by requesting [ONOS custom API](https://github.com/derailment/dozeu/tree/master/traffic-engineering) and finding out those paths using greedy algorithm:
 ```
 sudo python ./opa/main.py --one-shot
 ```
-<img src="https://github.com/derailment/image/after_reroute.png" width="500">
+
+<img src="https://github.com/derailment/dozeu/blob/master/image/after_reroute.png" width="500">
 
