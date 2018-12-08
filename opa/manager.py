@@ -56,7 +56,6 @@ class IntentManager(object):
     def __init__(self):
         self.__conns = []
         self.__reroute_msg = {'paths': []}
-        self.__should_reroute = False
 
     def __get_conns(self):
         conns = []
@@ -94,16 +93,10 @@ class IntentManager(object):
             i = i + 1
         # it is from different pair of two hosts
         conns.append({'one': n1, 'two': n2, 'bw': bw})
-        # handle when connectivity is from host to host intent
-        if appid == 'org.onosproject.ifwd':
-            self.__should_reroute = True 
         return
         
     def reroute(self, topo):
         self.__conns = self.__get_conns()
-        if self.__should_reroute == False:
-            logging.info("Sorry, this is the best solution :(")
-            return
         logging.info("Start finding path between two hosts...")
         for conn in self.__conns:
             _topo = topo

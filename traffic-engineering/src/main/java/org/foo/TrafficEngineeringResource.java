@@ -99,7 +99,7 @@ public class TrafficEngineeringResource extends AbstractWebResource {
     @GET
     @Path("state/connectivity")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getConnectivityBandwidth() throws InterruptedException {
+    public Response getConnectivityBandwidth() {
 
         CoreService coreService = get(CoreService.class);
         HostService hostService = get(HostService.class);
@@ -250,12 +250,12 @@ public class TrafficEngineeringResource extends AbstractWebResource {
         Key key = Key.of("Path(" + srcId.toString() + dstId.toString() + ")", appId);
         PathIntent pathIntent = (PathIntent) intentService.getIntent(key);
         if(pathIntent != null) {
-
             priority = pathIntent.priority();
-
             // remove the existing one
-            intentService.withdraw(pathIntent);
-            intentService.purge(pathIntent);
+            while (intentService.getIntent(key) != null) {
+                intentService.withdraw(pathIntent);
+                intentService.purge(pathIntent);
+            }
         }
 
         // set priority of this path intent higher than host to host intent which builds shortest path
