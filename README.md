@@ -38,6 +38,7 @@ sudo python ./opa/topo.py
 Then, log in ONOS GUI in browser, there are two connectivities:
 1. h1 sends dataframes to h3 at speed 5Mbps
 2. h2 sends dataframes to h4 at speed 5Mbps
+
 All of links of the topology have maximum bandwidth limit 10Mbps
 
 <img src="https://github.com/derailment/dozeu/blob/master/image/reroute_before.png" width="400">
