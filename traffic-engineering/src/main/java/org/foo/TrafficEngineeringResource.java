@@ -280,10 +280,10 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 .treatment(DefaultTrafficTreatment.emptyTreatment())
                 .build();
 
-        intentService.submit(pathIntent);
-
-        // make sure path has submitted
-        while (intentService.getIntent(key) == null) {}
+        // submit path intent
+        while (intentService.getIntent(key) == null) {
+            intentService.submit(pathIntent);
+        }
 
     }
 
