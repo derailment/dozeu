@@ -219,7 +219,7 @@ public class TrafficEngineeringResource extends AbstractWebResource {
     }
 
     private void submitPathIntent(ProviderId providerId, List<DeviceId> deviceIds, HostId srcId, HostId dstId) {
-
+        
         HostService hostService = get(HostService.class);
         PathService pathService = get(PathService.class);
         IntentService intentService = get(IntentService.class);
@@ -281,6 +281,9 @@ public class TrafficEngineeringResource extends AbstractWebResource {
                 .build();
 
         intentService.submit(pathIntent);
+
+        // make sure path has submitted
+        while (intentService.getIntent(key) == null) {}
 
     }
 
