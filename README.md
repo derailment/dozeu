@@ -50,3 +50,6 @@ sudo python ./opa/main.py --one-shot
 
 <img src="https://github.com/derailment/dozeu/blob/master/image/reroute_after.png" width="400">
 
+## Slide
+[Make Congested Traffic Reroute](https://www.slideshare.net/AbbyWu10/make-congested-traffic-reroute)
+
